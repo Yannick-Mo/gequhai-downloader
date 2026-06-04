@@ -7,29 +7,44 @@ import requests
 from utils import get_proxies
 
 BASE_URL = "https://www.gequhai.com"
-MAX_RESULTS = 15
+MAX_RESULTS = 100
+MAX_PAGES = 10
+PER_PAGE = 10
 
 _HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
 }
 
+_PATTERN = r'<a href="(/play/(\d+))"[^>]*>([^<]+)</a>\s*</td>\s*<td[^>]*>([^<]+)</td>'
 
-def search_songs(keyword: str) -> list[dict]:
-    url = f"{BASE_URL}/s/{requests.utils.quote(keyword)}"
-    resp = requests.get(url, headers=_HEADERS, timeout=15, proxies=get_proxies())
-    resp.encoding = 'utf-8'
-    html = resp.text
 
+def _parse_results(html: str) -> list[dict]:
     results = []
-    pattern = r'<a href="(/play/(\d+))"[^>]*>([^<]+)</a>\s*</td>\s*<td[^>]*>([^<]+)</td>'
-    for m in re.finditer(pattern, html):
+    for m in re.finditer(_PATTERN, html):
         results.append({
             'id': m.group(2),
             'title': m.group(3).strip(),
             'artist': m.group(4).strip(),
             'play_url': m.group(1),
         })
+    return results
+
+
+def search_songs(keyword: str) -> list[dict]:
+    results = []
+    encoded = requests.utils.quote(keyword)
+    for page in range(1, MAX_PAGES + 1):
+        url = f"{BASE_URL}/s/{encoded}"
+        if page > 1:
+            url += f"?page={page}"
+        resp = requests.get(url, headers=_HEADERS, timeout=15, proxies=get_proxies())
+        resp.encoding = 'utf-8'
+        page_results = _parse_results(resp.text)
+        if not page_results:
+            break
+        results.extend(page_results)
         if len(results) >= MAX_RESULTS:
+            results = results[:MAX_RESULTS]
             break
     return results
 
