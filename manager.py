@@ -1,3 +1,4 @@
+import os
 from enum import Enum
 
 from PyQt6.QtCore import QObject, pyqtSignal
@@ -36,6 +37,7 @@ class DownloadManager(QObject):
         super().__init__()
         self.save_path = save_path
         self.quark_cookie = quark_cookie
+        os.makedirs(save_path, exist_ok=True)
         self.queue: list[DownloadTask] = []
         self._running = False
         self._thread: threading.Thread | None = None

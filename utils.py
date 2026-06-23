@@ -85,6 +85,7 @@ def download_file(url: str, filepath: str, cookie: str = '',
 
     proxies = get_proxies()
     last_exc = None
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
     for attempt in range(1, MAX_RETRIES + 1):
         try:
             resp = requests.get(url, headers=headers, stream=True, timeout=60, proxies=proxies)
